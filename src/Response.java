@@ -50,12 +50,12 @@ public class Response {
         {
             String msg = "";
             for(String str : message){
-                msg += str + " $";
+                msg += str + " EOL";
             }
-            return version +" "+ operation +" "+ numOfLines +" "+ responseCode +" "+ responseCodeMsg +" $" + msg;
+            return version +" "+ operation +" "+ numOfLines +" "+ responseCode +" "+ responseCodeMsg +" EOL" + msg;
         }
         else{
-            return version +" "+ operation +" "+ numOfLines +" "+ responseCode +" "+ responseCodeMsg +" $";
+            return version +" "+ operation +" "+ numOfLines +" "+ responseCode +" "+ responseCodeMsg +" EOL";
         }
     }
 }
