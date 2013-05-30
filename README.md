@@ -40,10 +40,10 @@ Communication with peers as its below:
 
 These are commands that can be sent to peer: (Operations)
 
-	ADD — Add a string to be stored at the peer. i.e ADD 3171a 3/1.0 1CRLFwhat time is it?CRLF
-	QUERY — Determine whether or not this peer is storing a specific string. i.e QUERY 3171a 3/1.0 1CRLFkumquatCRL
-	RETRIEVE -
-	REMOVE -
+	ADD — Adds a string value to DHT.
+	QUERY — Finds key of value in DHT.
+	RETRIEVE - Retrieves value from connected node with given key.
+	REMOVE - Removes given key and value pair from DHT.
 
 Format for messages: (Version for protocol = SDHT_1.0 )
 
