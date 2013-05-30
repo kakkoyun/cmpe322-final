@@ -33,6 +33,6 @@ public class Settings {
     private Settings() {
         Version = "SDHT_1.0";
         Prefix = "SDHT|";
-        Modulo = 10;
+        Modulo = 16;
     }
 }

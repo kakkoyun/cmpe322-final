@@ -74,10 +74,10 @@ public class Service extends Thread {
 
             while ((inputLine = in.readLine()) != null) {
 
-                log("Received -" + " Peer : "+ peer.id +" Port Number: "+ peer.id +" "+ inputLine);
+                log("Received -" + " Peer : "+ peer.id +" Port Number: "+ peer.port +" "+ inputLine);
                 outputLine = this.peer.Protocol(inputLine).toString();
 
-                log("Sent -" + " PeerID: "+ peer.id +" Port Number: "+ peer.id +"     "+outputLine);
+                log("Sent -" + " Peer : "+ peer.id +" Port Number: "+ peer.port +"     "+outputLine);
                 out.println(outputLine);
 
                 if (outputLine.equals("EXIT")){
