@@ -68,17 +68,17 @@ public class Request {
         {
             String msg = "";
             for(String str : message){
-                msg += str + " $";
+                msg += str + " EOL";
             }
             if(peerId > 0)
-                return operation +" "+ version +" "+ numOfLines +" "+ peerId + " $" + msg;
+                return operation +" "+ version +" "+ numOfLines +" "+ peerId + " EOL" + msg;
             else
-                return operation +" "+ version +" "+ numOfLines + " $" + msg;
+                return operation +" "+ version +" "+ numOfLines + " EOL" + msg;
         }
         else if(peerId == 0)
         {
-            return operation +" "+ version +" "+ numOfLines +" $";
+            return operation +" "+ version +" "+ numOfLines +" EOL";
         }
-        return operation +" "+ version +" "+ numOfLines +" "+ peerId +" $";
+        return operation +" "+ version +" "+ numOfLines +" "+ peerId +" EOL";
     }
 }

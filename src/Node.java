@@ -29,6 +29,8 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
+import javax.swing.text.Utilities;
+
 public class Node extends Thread {
 
     public int id;
@@ -51,6 +53,8 @@ public class Node extends Thread {
         this.hostname = hostname;
         this.port = port;
         this.isFirstPeer = true;
+        this.previousHostName = this.hostname;
+        this.previousPort = this.port;
         this.nextPeerHostName = this.hostname;
         this.nextPeerId = this.id;
         this.nextPeerPort = this.port;
@@ -61,6 +65,7 @@ public class Node extends Thread {
         this.id = previousPeerId + 1;
         this.hostname = hostname;
         this.port = port;
+        this.isFirstPeer = false;
         this.previousHostName = previousHostName;
         this.previousPort = previousPort;
         this.hashTable = new Hashtable<Integer, String>();
@@ -96,23 +101,20 @@ public class Node extends Thread {
 
     public Request generateRequest(String message){
 
-        String[] ArrayMessage = message.trim().split("$");
+        String[] ArrayMessage = message.trim().split("EOL");
 
         String version = null;
         String operation = null;
         int numOfLines = 0;
-        int peerId = 0;
+        int peerId = -1;
 
         ArrayList<String> Message = new ArrayList<String>();
         for(String str : ArrayMessage){
             if(str.toUpperCase().contains(Settings.getInstance().Version.toUpperCase())){
                 String[] wordsInLine = str.trim().split("\\s+");
                 operation = wordsInLine[0];
-                System.out.println("op : " + operation);
                 version = wordsInLine[1];
-                System.out.println("ver : " + version);
                 numOfLines = Integer.parseInt(wordsInLine[2]);
-                System.out.println("nl : " + numOfLines);
                 if(wordsInLine.length == 5){
                     peerId = Utility.parseInt(wordsInLine[3]);
                 }
@@ -140,7 +142,7 @@ public class Node extends Thread {
      */
     public Response generateResponse(String message){
 
-        String[] ArrayMessage = message.trim().split("$");
+        String[] ArrayMessage = message.trim().split("EOL");
 
         String version =  null;
         String operation = null;
@@ -159,12 +161,10 @@ public class Node extends Thread {
                 responseCodeMsg = wordsInLine[4];
             }
             else{
-                System.out.println("else");
                 responseMessage.add(strValue);
             }
         }
         Response response = new Response(version, operation, numOfLines, responseCode, responseCodeMsg, responseMessage);
-        System.out.println(response);
         return response;
     }
 
@@ -185,7 +185,6 @@ public class Node extends Thread {
         {
             String messagePrefix = message.toUpperCase().trim().split("\\s+")[0];
             if(messagePrefix.equals(Settings.getInstance().Version.toUpperCase())){
-                System.out.println("response generation");
                 return nextQueryResponseProcess(generateResponse(message)).toString();
             } else {
                 return nextQueryRequestProcess(generateRequest(message)).toString();
@@ -214,6 +213,24 @@ public class Node extends Thread {
                 return queryResponseProcess(generateResponse(message)).toString();
             else
                 return queryRequestProcess(generateRequest(message)).toString();
+
+        }
+        else if(message.contains("RETRIEVE"))
+        {
+            String messagePrefix = message.toUpperCase().trim().split("\\s+")[0];
+            if(messagePrefix.equals(Settings.getInstance().Version.toUpperCase()))
+                return retrieveQueryResponseProcess(generateResponse(message)).toString();
+            else
+                return retrieveQueryRequestProcess(generateRequest(message)).toString();
+
+        }
+        else if(message.contains("REMOVE"))
+        {
+            String messagePrefix = message.toUpperCase().trim().split("\\s+")[0];
+            if(messagePrefix.equals(Settings.getInstance().Version.toUpperCase()))
+                return removeQueryResponseProcess(generateResponse(message)).toString();
+            else
+                return removeQueryRequestProcess(generateRequest(message)).toString();
 
         }
         else if(message.contains("INFO")){
@@ -320,9 +337,7 @@ public class Node extends Thread {
         if(hostname.isEmpty() || port == 0){
             return new Response(Settings.getInstance().Version, "NEXT", 0, 501, "NextDoesNotExist", responseMessage);
         }
-        System.out.println(responseMessage);
         responseMessage.add(nextPeerHostName +" "+ nextPeerPort +" "+ nextPeerId);
-        System.out.println(responseMessage);
         return new Response(Settings.getInstance().Version, "NEXT", 1, 200, "OK", responseMessage);
     }
 
@@ -334,13 +349,12 @@ public class Node extends Thread {
     public Request nextQueryResponseProcess(Response response){
         switch(response.responseCode){
             case 200:
-                System.out.println(response.message);
                 String[] msg = response.message.get(0).trim().split("\\s+");
                 nextPeerHostName = msg[0];
                 nextPeerPort = Utility.parseInt(msg[1]);
                 nextPeerId = Utility.parseInt(msg[2]);
                 ArrayList<String> message = new ArrayList<String>();
-                message.add(this.hostname +" "+ this.port);
+                message.add(this.hostname +" "+ this.port+" "+this.id);
                 sendPreviousClient(new Request("PULL", Settings.getInstance().Version, 1, id, message).toString());
                 return new Request("PULL", Settings.getInstance().Version, 1, id, message);
             case 501:
@@ -360,7 +374,7 @@ public class Node extends Thread {
         String[] msg = request.message.get(0).trim().split("\\s+");
         nextPeerHostName = msg[0];
         nextPeerPort = Utility.parseInt(msg[1]);
-        nextPeerId = request.peerId;
+        nextPeerId =  Utility.parseInt(msg[2]);
         ArrayList<String> responseMessage = new ArrayList<String>();
         responseMessage.add("dummy");
         return new Response(Settings.getInstance().Version, "PULL", 1, 200, "OK", responseMessage);
@@ -392,10 +406,9 @@ public class Node extends Thread {
         int key = Utility.getKey(msg);
         if(hashTable.containsValue(msg)) {
             return new Response(Settings.getInstance().Version, "ADD", 0, 202, "Duplicate", responseMessage);
-        } else if(id <= key && key < nextPeerId
-                || id <= key && id > nextPeerId
-                || nextPeerId > key && id > nextPeerId) {
-            hashTable.put(key, msg);
+        } else if(id < key && nextPeerId < key 
+                || id == key){
+        	hashTable.put(key, msg);
             return new Response(Settings.getInstance().Version, "ADD", 0, 200, "OK", responseMessage);
         } else {
             responseMessage.add(msg);
@@ -415,6 +428,71 @@ public class Node extends Thread {
     }
 
     /**
+     * retrieveQueryRequestProcess : A method to process retrieve query request.
+     * @param request Request to be processed.
+     * @return Generates response object.
+     */
+    public Response retrieveQueryRequestProcess(Request request){
+        ArrayList<String> responseMessage = new ArrayList<String>();
+        String msg = request.message.get(0).trim();
+        int key = Utility.parseInt(msg);
+        if(hashTable.containsKey(key)){
+        	String value = hashTable.get(key);
+        	responseMessage.add("\nFound at peer: "+id+" at key: "+key+" with value: "+value);
+            return new Response(Settings.getInstance().Version, "RETRIEVE", 0, 200, "OK", responseMessage);
+        } else if(id < key && nextPeerId < key 
+                || id == key) {
+            return new Response(Settings.getInstance().Version, "RETRIEVE", 0, 201, "NotPresent", responseMessage);
+        } else {
+            responseMessage.add(msg);
+            sendNextClient(new Request("RETRIEVE", Settings.getInstance().Version, 0, id, responseMessage).toString());
+            return new Response(Settings.getInstance().Version, "RETRIEVE", 0, 400, "NotResponsible", responseMessage);
+        }
+    }
+
+    /**
+     * retrieveQueryResponseProcess : A method to process retrieve query response.
+     * @param response Response to be processed.
+     * @return Generates a request object.
+     */
+    public Request retrieveQueryResponseProcess(Response response){
+        return new Request("DONE", Settings.getInstance().Version, 0);
+    }
+    
+    /**
+     * removeQueryRequestProcess : A method to process remove query request.
+     * @param request Request to be processed.
+     * @return Generates response object.
+     */
+    public Response removeQueryRequestProcess(Request request){
+        ArrayList<String> responseMessage = new ArrayList<String>();
+        String msg = request.message.get(0).trim();
+        int key = Utility.parseInt(msg);
+        if(hashTable.containsKey(key)){
+        	String value = hashTable.get(key);
+        	hashTable.remove(key);
+        	responseMessage.add("\nRemoved at peer: "+id+" at key: "+key+" with value: "+value);
+            return new Response(Settings.getInstance().Version, "REMOVE", 0, 200, "OK", responseMessage);
+        } else if(id < key && nextPeerId < key 
+                || id == key) {
+            return new Response(Settings.getInstance().Version, "REMOVE", 0, 201, "NotPresent", responseMessage);
+        } else {
+            responseMessage.add(msg);
+            sendNextClient(new Request("REMOVE", Settings.getInstance().Version, 0, id, responseMessage).toString());
+            return new Response(Settings.getInstance().Version, "REMOVE", 0, 400, "NotResponsible", responseMessage);
+        }
+    }
+
+    /**
+     * removeQueryResponseProcess : A method to process remove query response.
+     * @param response Response to be processed.
+     * @return Generates a request object.
+     */
+    public Request removeQueryResponseProcess(Response response){
+        return new Request("DONE", Settings.getInstance().Version, 0);
+    }
+    
+    /**
      * queryRequestProcess : A method to process query request.
      * @param request Request to be processed.
      * @return Generates response object.
@@ -424,21 +502,22 @@ public class Node extends Thread {
         String msg = request.message.get(0).trim();
         int key = Utility.getKey(msg);
         if(hashTable.containsValue(msg)){
+        	responseMessage.add("\nFound at peer: "+id+" at key: "+key+" ");
             return new Response(Settings.getInstance().Version, "QUERY", 0, 200, "OK", responseMessage);
-        } else if(id <= key && key < nextPeerId
-                || id <= key && id > nextPeerId
-                || nextPeerId > key && id > nextPeerId) {
-            return new Response(Settings.getInstance().Version, "ADD", 0, 201, "NotPresent", responseMessage);
+        } else if(id < key && nextPeerId < key 
+                || id == key) {
+            return new Response(Settings.getInstance().Version, "QUERY", 0, 201, "NotPresent", responseMessage);
         } else {
             responseMessage.add(msg);
-            return new Response(Settings.getInstance().Version, "ADD", 0, 400, "NotResponsible", responseMessage);
+            sendNextClient(new Request("QUERY", Settings.getInstance().Version, 0, id, responseMessage).toString());
+            return new Response(Settings.getInstance().Version, "QUERY", 0, 400, "NotResponsible", responseMessage);
         }
     }
 
     /**
-     * Process query response
-     * @param response
-     * @return
+     * queryResponseProcess : A method to process query response.
+     * @param response Response to be processed.
+     * @return Generates a request object.
      */
     public Request queryResponseProcess(Response response){
         return new Request("DONE", Settings.getInstance().Version, 0);
