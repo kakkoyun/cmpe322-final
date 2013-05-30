@@ -406,17 +406,9 @@ public class Node extends Thread {
         int key = Utility.getKey(msg);
         if(hashTable.containsValue(msg)) {
             return new Response(Settings.getInstance().Version, "ADD", 0, 202, "Duplicate", responseMessage);
-<<<<<<< HEAD
-        } else if(id <= key && key < nextPeerId
-                || id <= key && id > nextPeerId
-                || nextPeerId > key && id > nextPeerId) {
-            String[] val = msg.trim().split("\\s+");
-            hashTable.put(key, val[1]);
-=======
         } else if(id < key && nextPeerId < key
                 || id == key){
         	hashTable.put(key, msg);
->>>>>>> 7ef9fab8eaf74bf3bf15f1d94a1bd17ba021e380
             return new Response(Settings.getInstance().Version, "ADD", 0, 200, "OK", responseMessage);
         } else {
             responseMessage.add(msg);
