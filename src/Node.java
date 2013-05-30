@@ -108,11 +108,8 @@ public class Node extends Thread {
             if(str.toUpperCase().contains(Settings.getInstance().Version.toUpperCase())){
                 String[] wordsInLine = str.trim().split("\\s+");
                 operation = wordsInLine[0];
-                System.out.println("op : " + operation);
                 version = wordsInLine[1];
-                System.out.println("ver : " + version);
                 numOfLines = Integer.parseInt(wordsInLine[2]);
-                System.out.println("nl : " + numOfLines);
                 if(wordsInLine.length == 5){
                     peerId = Utility.parseInt(wordsInLine[3]);
                 }
@@ -159,12 +156,10 @@ public class Node extends Thread {
                 responseCodeMsg = wordsInLine[4];
             }
             else{
-                System.out.println("else");
                 responseMessage.add(strValue);
             }
         }
         Response response = new Response(version, operation, numOfLines, responseCode, responseCodeMsg, responseMessage);
-        System.out.println(response);
         return response;
     }
 
@@ -185,7 +180,6 @@ public class Node extends Thread {
         {
             String messagePrefix = message.toUpperCase().trim().split("\\s+")[0];
             if(messagePrefix.equals(Settings.getInstance().Version.toUpperCase())){
-                System.out.println("response generation");
                 return nextQueryResponseProcess(generateResponse(message)).toString();
             } else {
                 return nextQueryRequestProcess(generateRequest(message)).toString();
@@ -334,7 +328,6 @@ public class Node extends Thread {
     public Request nextQueryResponseProcess(Response response){
         switch(response.responseCode){
             case 200:
-                System.out.println(response.message);
                 String[] msg = response.message.get(0).trim().split("\\s+");
                 nextPeerHostName = msg[0];
                 nextPeerPort = Utility.parseInt(msg[1]);
@@ -395,7 +388,8 @@ public class Node extends Thread {
         } else if(id <= key && key < nextPeerId
                 || id <= key && id > nextPeerId
                 || nextPeerId > key && id > nextPeerId) {
-            hashTable.put(key, msg);
+            String[] val = msg.trim().split("\\s+");
+            hashTable.put(key, val[1]);
             return new Response(Settings.getInstance().Version, "ADD", 0, 200, "OK", responseMessage);
         } else {
             responseMessage.add(msg);
@@ -436,9 +430,9 @@ public class Node extends Thread {
     }
 
     /**
-     * Process query response
-     * @param response
-     * @return
+     * queryResponseProcess : A method to process query response.
+     * @param response Response to be processed.
+     * @return Generates request object.
      */
     public Request queryResponseProcess(Response response){
         return new Request("DONE", Settings.getInstance().Version, 0);
