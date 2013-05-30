@@ -36,7 +36,7 @@ Communication with peers as its below:
 (All activity logged in p2p.log file directory at where peer runs.)
 
 	telnet <HOSTNAME> <PORT>
-	i.e telnet ubuntu 2112
+	i.e telnet localhost 9000
 
 These are commands that can be sent to peer: (Operations)
 
@@ -49,6 +49,9 @@ Format for messages: (Version for protocol = SDHT_1.0 )
 
 	<OPERATION> <space> <VERSION> <space> <NumberOfFollowingLines> <space> <EOL> 0 or more following lines ending with <EOL>
 	i.e ADD SDHT_1.0 1 EOL foo bar baz qux quux EOL
+	i.e QUERY SDHT_1.0 1 EOL foo EOL
+	i.e RETRIEVE SDHT_1.0 1 EOL 2 EOL
+	i.e REMOVE SDHT_1.0 1 EOL 2 EOL
 
 Format for response:
 
